@@ -39,7 +39,7 @@ def make_gist(owl_file,outfolder="gist",username="vsoch",repo_name="owl2neo"):
 
 
 # create a node
-def create_node(nid,node_type,uid,name,properties):
+def create_node(nid,node_type,uid,name,properties=[]):
     '''create_node:
     generate text string to generate a neo4j node
     properties: should be list of tuples of form (name,property)
@@ -86,7 +86,7 @@ def get_node_lookup(graph):
     count = 1
     for node in graph:
         if "@type" in node:  
-            if "http://www.w3.org/2002/07/owl#Class" in node["@type"]: 
+            #if "http://www.w3.org/2002/07/owl#Class" in node["@type"]: 
                 node_id = node["@id"].encode("utf-8")
                 if node_id not in nodes:
                     nodes[node_id] = count
@@ -153,7 +153,8 @@ def parse_owl(graph,lookup):
             label = node
         properties = make_properties(meta)
         uid = lookup[node]
-        node_list.append(create_node(lookup[node],node_type,uid,label,properties))
+        # Don't add properties for now - too many text issues
+        node_list.append(create_node(lookup[node],node_type,uid,label))
 
 
     # Now generate relationships (does not include "sublass of"
@@ -162,18 +163,15 @@ def parse_owl(graph,lookup):
         if "@type" in node:
             # This is a relationship
             if "http://www.w3.org/2002/07/owl#Restriction" in node["@type"]:
-                try:
-                    if "http://www.w3.org/2002/07/owl#onProperty" in node:
-                        relationship = node["http://www.w3.org/2002/07/owl#onProperty"][0]["@id"]
-                        relationship = relationship.split("#")[-1]
-                        nid1 = lookup[node["@id"]]
-                        if "http://www.w3.org/2002/07/owl#someValuesFrom" in node:
-                            nid2 = lookup[node["http://www.w3.org/2002/07/owl#someValuesFrom"][0]["@id"]]
-                        else:
-                            nid2 = lookup[node["http://www.w3.org/2002/07/owl#allValuesFrom"][0]["@id"]]
-                    relations.append(create_relation(nid1,nid2,relationship))
-                except:
-                    pass
+                if "http://www.w3.org/2002/07/owl#onProperty" in node:
+                    relationship = node["http://www.w3.org/2002/07/owl#onProperty"][0]["@id"]
+                    relationship = relationship.split("#")[-1]
+                    nid1 = lookup[node["@id"]]
+                    if "http://www.w3.org/2002/07/owl#someValuesFrom" in node:
+                        nid2 = lookup[node["http://www.w3.org/2002/07/owl#someValuesFrom"][0]["@id"]]
+                    else:
+                        nid2 = lookup[node["http://www.w3.org/2002/07/owl#allValuesFrom"][0]["@id"]]
+                relations.append(create_relation(nid1,nid2,relationship))
     return node_list,relations
 
 
